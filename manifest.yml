@@ -1,0 +1,7 @@
+---
+applications:
+  - name: ttclateness
+    command: ./ttclateness
+    buildpack: binary_buildpack
+    env:
+      GOPACKAGENAME: ttclateness
