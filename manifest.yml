@@ -2,6 +2,7 @@
 applications:
   - name: ttclateness
     command: ./ttclateness
+    health-check-type: none
     buildpack: binary_buildpack
     env:
       GOPACKAGENAME: ttclateness

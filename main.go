@@ -13,10 +13,12 @@ import (
 
 var slackChannel = "G3W5N8UQG"
 
+var UserStore = make(map[string][]string)
+
 func main() {
 	botToken := os.Getenv("BOT_TOKEN")
 
-	slackBot := Bot{Token: botToken}
+	slackBot := Bot{Token: botToken, UserStore: UserStore}
 	slackBot.init()
 	slackBot.write("Bot Online!")
 
@@ -43,6 +45,24 @@ func startStream(tweetChannel chan twitter.Tweet, slackBot *Bot, ch chan os.Sign
 				slackMessage := fmt.Sprintf(":ttc: %s AT TIME %s", tweet.Text, tweetTime.Local().String())
 				fmt.Println(slackMessage)
 				slackBot.write(slackMessage)
+
+				station, delayed, cleared := findAffectedStation(tweet.Text)
+				fmt.Println("TWEET IS ", station, delayed, cleared)
+
+				if delayed {
+					DelayedStations[station] = true
+				}
+				if cleared {
+					delete(DelayedStations, station)
+				}
+
+				for user, items := range UserStore {
+					for _, item := range items {
+						if item == station {
+							slackBot.write(fmt.Sprintf("%s will be delayed\n", user))
+						}
+					}
+				}
 			}
 		case <-ch:
 			fmt.Println("Stopping Bot...")
@@ -62,7 +82,7 @@ func startTwitterChecker(tweetChannel chan twitter.Tweet) {
 	httpClient := config.Client(oauth1.NoContext, twitterToken)
 	client := twitter.NewClient(httpClient)
 
-	timerChannel := time.Tick(15 * time.Second)
+	timerChannel := time.Tick(1 * time.Second)
 	var sinceId int64
 	for now := range timerChannel {
 		fmt.Println(now)
@@ -87,4 +107,27 @@ func startTwitterChecker(tweetChannel chan twitter.Tweet) {
 		}
 	}
 
+}
+
+func findAffectedStation(text string) (string, bool, bool) {
+	if !isSubway(text) {
+		fmt.Println(text, "NOT A SUBWAY")
+		return "", false, false
+	}
+
+	station := getStation(text)
+	if station == "" {
+		fmt.Println("NOT A STATION")
+		return "", false, false
+	}
+	fmt.Println(station)
+
+	fmt.Println("IS SUBWAY ", text)
+	delay := isDelay(text)
+	clear := isClear(text)
+
+	fmt.Println("IS DELAY ", delay)
+	fmt.Println("IS CLEAR", clear)
+
+	return station, delay, clear
 }
