@@ -58,7 +58,7 @@ func startStream(tweetChannel chan twitter.Tweet, slackBot *Bot, ch chan os.Sign
 
 				for user, items := range UserStore {
 					for _, item := range items {
-						if item == station {
+						if DelayedStations[item] {
 							slackBot.write(fmt.Sprintf("%s will be delayed\n", user))
 						}
 					}
